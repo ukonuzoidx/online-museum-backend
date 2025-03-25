@@ -1,8 +1,8 @@
 from fastapi import FastAPI
 import uvicorn
 from fastapi.middleware.cors import CORSMiddleware
-from backend.services.emotion_service import router as emotion_router
-from backend.services.music_services import router as music_router
+from services.emotion_service import router as emotion_router
+from services.music_services import router as music_router
 
 app = FastAPI(title="Online Museum AI Backend", version="1.0")
 
