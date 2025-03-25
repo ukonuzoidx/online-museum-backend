@@ -1,0 +1,6 @@
+# ignore the data folder
+
+data/
+models/
+*.keras
+*.h5models/
