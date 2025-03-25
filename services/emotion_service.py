@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 from fastapi import APIRouter, File, UploadFile, HTTPException
-from backend.utils.model_loader import load_model
+from utils.model_loader import load_model
 from collections import Counter
 import time
 from pydantic import BaseModel
