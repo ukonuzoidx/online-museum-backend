@@ -1,179 +1,16 @@
-# import os
-# import shutil
-# import cv2
-# from pathlib import Path
-# from tqdm import tqdm  # Progress bar
-
-# # Define paths
-# source_dir = "../data/raw/affectnet"  # Update this with your actual dataset path
-# dest_dir = "../data/processed"  # Destination for cleaned and structured data
-
-# # Class mapping
-# class_mapping = {
-#     "class001": "neutral",
-#     "class002": "happy",
-#     "class003": "sad",
-#     "class004": "surprise",
-#     "class005": "fear",
-#     "class006": "angry",
-#     "class007": "disgust"
-# }
-
-# # # Ensure destination directory exists
-# # dest_dir.mkdir(parents=True, exist_ok=True)
-
-# # Create folders for each emotion class
-# for emotion in class_mapping.values():
-#     (dest_dir / Path(emotion)).mkdir(parents=True, exist_ok=True)
-
-# # Get all image files
-# image_files = list(source_dir.glob("*.jpg"))
-# print(f"Found {len(image_files)} images. Processing...\n")
-
-# # Process images with a progress bar
-# for img_path in tqdm(image_files, desc="Processing Images"):
-#     try:
-#         filename = img_path.name
-
-#         # Extract class from filename (handles variations)
-#         class_code = [part for part in filename.split("_") if "class" in part]
-#         if not class_code:
-#             print(f"Skipping (No class found): {filename}")
-#             continue
-        
-#         class_code = class_code[0]  # Extract classXXX
-#         emotion = class_mapping.get(class_code, None)
-#         if not emotion:
-#             print(f"Skipping (Unknown class): {filename}")
-#             continue
-
-#         # Load and check image
-#         img = cv2.imread(str(img_path))
-#         if img is None:
-#             print(f"Skipping (Unreadable file): {filename}")
-#             continue
-
-#         # Convert to grayscale & resize
-#         img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-#         img_resized = cv2.resize(img_gray, (48, 48))
-
-#         # Save to structured dataset
-#         save_path = dest_dir / Path(emotion) / filename
-#         cv2.imwrite(str(save_path), img_resized)
-
-#     except Exception as e:
-#         print(f"Error processing {filename}: {e}")
-
-# print("\n✅ Data cleaning & restructuring completed successfully!")
-
-# import os
-# import re
-# import shutil
-# import cv2
-# from pathlib import Path
-# from tqdm import tqdm  # Progress bar
-
-# # Define paths (UPDATE these to your actual dataset paths)
-# RAW_DATASET_PATH = Path("../data/raw/affectnet")  # Change to your actual dataset path
-# SORTED_DATASET_PATH = Path("../data/processed")  # Destination for organized dataset
-# LOG_FILE = "removed_images.log"  # Log file for removed images
-
-# # Define the class-to-emotion mapping
-# CLASS_MAPPING = {
-#     "class001": "neutral",
-#     "class002": "happy",
-#     "class003": "sad",
-#     "class004": "surprise",
-#     "class005": "fear",
-#     "class006": "disgust",
-#     "class007": "angry"
-# }
-
-# # Ensure output folders exist
-# for emotion in CLASS_MAPPING.values():
-#     (SORTED_DATASET_PATH / emotion).mkdir(parents=True, exist_ok=True)
-
-# # Track progress per emotion
-# progress = {emotion: 0 for emotion in CLASS_MAPPING.values()}
-# removed_files = []
-
-# # Load OpenCV face detector (pre-trained model)
-# face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_frontalface_default.xml")
-
-# # Get image files
-# image_files = [f for f in RAW_DATASET_PATH.iterdir() if f.suffix.lower() in {".jpg", ".png", ".jpeg"}]
-# print(f"Found {len(image_files)} images. Processing...\n")
-
-# # Process and move images
-# for index, img_path in enumerate(tqdm(image_files, desc="Processing Images")):
-#     try:
-#         # Extract class from filename
-#         match = re.search(r'class00[1-7]', img_path.name)
-#         if not match:
-#             removed_files.append(f"No class found: {img_path.name}")
-#             continue
-
-#         class_label = match.group()
-#         emotion = CLASS_MAPPING.get(class_label, "unknown")
-
-#         if emotion == "unknown":
-#             removed_files.append(f"Unknown class: {img_path.name}")
-#             continue
-
-#         # Load image
-#         img = cv2.imread(str(img_path))
-#         if img is None:
-#             removed_files.append(f"Corrupt image: {img_path.name}")
-#             continue
-
-#         # Convert to grayscale for face detection
-#         img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-
-#         # Detect faces (ensures it's a face image)
-#         faces = face_cascade.detectMultiScale(img_gray, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30))
-#         if len(faces) == 0:
-#             removed_files.append(f"No face detected: {img_path.name}")
-#             continue
-
-#         # Resize & save image
-#         img_resized = cv2.resize(img_gray, (48, 48))
-#         new_filename = f"{emotion}_{progress[emotion]+1:05d}.jpg"
-#         dest_path = SORTED_DATASET_PATH / emotion / new_filename
-
-#         # Move file
-#         cv2.imwrite(str(dest_path), img_resized)
-#         progress[emotion] += 1
-
-#     except Exception as e:
-#         removed_files.append(f"Error processing {img_path.name}: {e}")
-
-# # Write removed images to a log file
-# with open(LOG_FILE, "w") as log:
-#     for entry in removed_files:
-#         log.write(entry + "\n")
-
-# print("\n✅ Sorting & Cleanup Complete!")
-# print(f"Removed {len(removed_files)} invalid images. See {LOG_FILE} for details.")
-# print("\nFinal Breakdown:")
-# for emotion, count in progress.items():
-#     print(f"{emotion}: {count} images")
-
-
 import os
 import re
-import shutil
 import cv2
+import numpy as np
 from pathlib import Path
-from tqdm import tqdm  # Progress bar
-import matplotlib.pyplot as plt
-import seaborn as sns
-import random
+from tqdm import tqdm
+from mtcnn import MTCNN
 
-# Define dataset paths (UPDATE these)
-RAW_DATASET_PATH = Path("../data/raw/affectnet")  # Path to unprocessed dataset
-SORTED_48_PATH = Path("../data/processed/affectnet_48x48")  # Folder for 48x48 dataset
-SORTED_224_PATH = Path("../data/processed/affectnet_224x224")  # Folder for 224x224 dataset
-LOG_FILE = "removed_images.log"  # Log file for removed images
+# Define dataset paths
+RAW_DATASET_PATH = Path("../data/raw/affectnet")
+SORTED_48_PATH = Path("../data/processed/affectnet_48x48")
+SORTED_224_PATH = Path("../data/processed/affectnet_224x224")
+LOG_FILE = "removed_images.log"
 
 # Define the class-to-emotion mapping
 CLASS_MAPPING = {
@@ -186,7 +23,7 @@ CLASS_MAPPING = {
     "class007": "angry"
 }
 
-# Ensure output folders exist for both resolutions
+# Create output directories
 for emotion in CLASS_MAPPING.values():
     (SORTED_48_PATH / emotion).mkdir(parents=True, exist_ok=True)
     (SORTED_224_PATH / emotion).mkdir(parents=True, exist_ok=True)
@@ -196,12 +33,15 @@ progress_48 = {emotion: 0 for emotion in CLASS_MAPPING.values()}
 progress_224 = {emotion: 0 for emotion in CLASS_MAPPING.values()}
 removed_files = []
 
-# Load OpenCV face detector (pre-trained model)
-face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_frontalface_default.xml")
+# Initialize MTCNN detector
+detector = MTCNN()
 
 # Get all image files
 image_files = [f for f in RAW_DATASET_PATH.iterdir() if f.suffix.lower() in {".jpg", ".png", ".jpeg"}]
 print(f"Found {len(image_files)} images. Processing...\n")
+
+# Set maximum images per class (for balanced dataset)
+MAX_IMAGES_PER_CLASS = 5000  # Adjust as needed
 
 # Process and move images
 for index, img_path in enumerate(tqdm(image_files, desc="Processing Images")):
@@ -218,6 +58,10 @@ for index, img_path in enumerate(tqdm(image_files, desc="Processing Images")):
         if emotion == "unknown":
             removed_files.append(f"Unknown class: {img_path.name}")
             continue
+            
+        # Check if we've reached max images for this class
+        if progress_48[emotion] >= MAX_IMAGES_PER_CLASS:
+            continue
 
         # Load image
         img = cv2.imread(str(img_path))
@@ -225,82 +69,88 @@ for index, img_path in enumerate(tqdm(image_files, desc="Processing Images")):
             removed_files.append(f"Corrupt image: {img_path.name}")
             continue
 
-        # Convert to grayscale for face detection
-        img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        img_rgb = cv2.cvtColor(img, cv2.IMREAD_COLOR)
-
-        # Detect faces (ensures it's a face image)
-        faces = face_cascade.detectMultiScale(img_gray, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30))
-        if len(faces) == 0:
+        # Convert to RGB for MTCNN (it expects RGB)
+        img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        
+        # Detect faces with MTCNN
+        faces = detector.detect_faces(img_rgb)
+        
+        if not faces or len(faces) == 0:
             removed_files.append(f"No face detected: {img_path.name}")
             continue
-
-        # Resize to both resolutions
-        img_resized_48 = cv2.resize(img_gray, (48, 48))
-        img_resized_224 = cv2.resize(img_rgb, (224, 224))
-
-        # Save images in both datasets
+        
+        # Get the face with the highest confidence
+        face = max(faces, key=lambda x: x['confidence'])
+        
+        # Only use faces with good confidence
+        if face['confidence'] < 0.9:  # Adjust threshold as needed
+            removed_files.append(f"Low confidence face: {img_path.name}")
+            continue
+            
+        # Extract face coordinates
+        x, y, width, height = face['box']
+        
+        # Add margin (20%)
+        margin_x = int(width * 0.2)
+        margin_y = int(height * 0.2)
+        
+        # Adjusted coordinates with margin
+        x = max(0, x - margin_x)
+        y = max(0, y - margin_y)
+        width = min(img.shape[1] - x, width + 2*margin_x)
+        height = min(img.shape[0] - y, height + 2*margin_y)
+        
+        # Crop face region
+        face_img = img_rgb[y:y+height, x:x+width]
+        
+        # Convert RGB to grayscale for 48x48
+        face_gray = cv2.cvtColor(face_img, cv2.COLOR_RGB2GRAY)
+        
+        # Resize images
+        face_48 = cv2.resize(face_gray, (48, 48))
+        face_224 = cv2.resize(face_img, (224, 224))
+        
+        # Save images
         new_filename_48 = f"{emotion}_{progress_48[emotion]+1:05d}.jpg"
         new_filename_224 = f"{emotion}_{progress_224[emotion]+1:05d}.jpg"
         
         dest_path_48 = SORTED_48_PATH / emotion / new_filename_48
         dest_path_224 = SORTED_224_PATH / emotion / new_filename_224
-
-        cv2.imwrite(str(dest_path_48), img_resized_48)
-        cv2.imwrite(str(dest_path_224), img_resized_224)
-
+        
+        # Convert back to BGR for OpenCV writing
+        face_224_bgr = cv2.cvtColor(face_224, cv2.COLOR_RGB2BGR)
+        
+        cv2.imwrite(str(dest_path_48), face_48)
+        cv2.imwrite(str(dest_path_224), face_224_bgr)
+        
         progress_48[emotion] += 1
         progress_224[emotion] += 1
 
     except Exception as e:
-        removed_files.append(f"Error processing {img_path.name}: {e}")
+        removed_files.append(f"Error processing {img_path.name}: {str(e)}")
 
-# Write removed images to a log file
+# Write removed images to log file
 with open(LOG_FILE, "w") as log:
     for entry in removed_files:
         log.write(entry + "\n")
 
-print("\n✅ Sorting & Cleanup Complete!")
+# Print summary
+print("\n✅ Preprocessing Complete!")
 print(f"Removed {len(removed_files)} invalid images. See {LOG_FILE} for details.")
-print("\nFinal Breakdown:")
+print("\nFinal Class Distribution:")
 for emotion, count in progress_48.items():
-    print(f"{emotion}: {count} images (48x48), {progress_224[emotion]} images (224x224)")
+    print(f"{emotion}: {count} images")
 
-DATASET_PATH = "../data/processed/affectnet_48x48"
-# Get class distribution
-class_counts = {}
-for emotion in os.listdir(DATASET_PATH):
-    folder_path = os.path.join(DATASET_PATH, emotion)
-    if os.path.isdir(folder_path):
-        class_counts[emotion] = len(os.listdir(folder_path))
+# Calculate class weights for training (to handle imbalance)
+total_images = sum(progress_48.values())
+class_weights = {i: total_images / (len(CLASS_MAPPING) * count) 
+                for i, (emotion, count) in enumerate(progress_48.items())}
 
-# Convert to sorted dictionary
-class_counts = dict(sorted(class_counts.items(), key=lambda x: x[1], reverse=True))
+print("\nClass Weights for Training (to handle class imbalance):")
+for idx, (emotion, weight) in enumerate(zip(progress_48.keys(), class_weights.values())):
+    print(f"{emotion} (class {idx}): {weight:.2f}")
 
-# Plot Class Distribution
-plt.figure(figsize=(10, 5))
-sns.barplot(x=list(class_counts.keys()), y=list(class_counts.values()), palette="viridis")
-plt.xlabel("Emotion Classes")
-plt.ylabel("Number of Images")
-plt.title("Number of Images in Each Emotion Category")
-plt.xticks(rotation=45)
-plt.show()
-
-# Sample Images from Each Class
-plt.figure(figsize=(12, 8))
-for i, emotion in enumerate(class_counts.keys()):
-    folder_path = os.path.join(DATASET_PATH, emotion)
-    image_file = random.choice(os.listdir(folder_path))
-    image_path = os.path.join(folder_path, image_file)
-    
-    img = cv2.imread(image_path)
-    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)  # Convert BGR to RGB
-
-    plt.subplot(2, 4, i+1)
-    plt.imshow(img)
-    plt.title(emotion)
-    plt.axis("off")
-
-plt.suptitle("Sample Images from Each Emotion Class", fontsize=16)
-plt.show()
-
+# Save class weights to file for training
+import json
+with open("class_weights.json", "w") as f:
+    json.dump(class_weights, f)

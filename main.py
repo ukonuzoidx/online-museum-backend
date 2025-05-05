@@ -3,6 +3,7 @@ import uvicorn
 from fastapi.middleware.cors import CORSMiddleware
 from services.emotion_service import router as emotion_router
 from services.music_services import router as music_router
+from utils.analytics import router as analytics_router
 
 app = FastAPI(title="Online Museum AI Backend", version="1.0")
 
@@ -13,7 +14,6 @@ origins = [
     "https://musemind-navy.vercel.app/"
 
 ]
-
 
 # ✅ CORS for Frontend
 app.add_middleware(
@@ -27,6 +27,7 @@ app.add_middleware(
 # ✅ Include API Routes
 app.include_router(emotion_router, prefix="/api")
 app.include_router(music_router, prefix="/api")
+app.include_router(analytics_router, prefix="/api")
 
 
 @app.get("/")

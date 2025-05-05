@@ -4,3 +4,5 @@ data/
 models/
 *.keras
 *.h5models/
+results/
+services/emotion_logs

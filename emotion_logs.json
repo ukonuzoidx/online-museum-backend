@@ -1,0 +1,20 @@
+[
+  {
+    "emotion": "Happy",
+    "confidence": 30.12,
+    "room": "Gallery1",
+    "timestamp": "2025-03-26T10:59:58.315000+00:00"
+  },
+  {
+    "emotion": "Sad",
+    "confidence": 60.12,
+    "room": "Gallery 2",
+    "timestamp": "2025-03-26T12:59:58.315000+00:00"
+  },
+  {
+    "emotion": "Sad",
+    "confidence": 60.12,
+    "room": "Gallery 2",
+    "timestamp": "2025-03-26T12:59:58.315000+00:00"
+  }
+]

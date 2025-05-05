@@ -1,93 +1,108 @@
+# import os
+# import sys
+# pyfeat_path = 'd:/coding_series/online-muesum/py-feat/feat'
+# for root, dirs, files in os.walk(pyfeat_path):
+#     print(f"Directory: {root}")
+#     for file in files:
+#         if file.endswith('.py'):
+#             print(f"  - {file}")
+#     # Only show first level for brevity
+#     if root == pyfeat_path:
+#         print(f"Subdirectories: {dirs}")
+#         break
+    
+# sys.path.append('d:/coding_series/online-muesum/py-feat')
+
+# from feat.detector import Detector
+
+# # Initialize without arguments first to see if it works
+# detector = Detector()
+
+# # Check what arguments it accepts
+# print(detector.__init__.__code__.co_varnames)
+# # Or check the help documentation
+# help(Detector)
+
+import sys
 import os
-import pandas as pd
+
+# Add the py-feat directory to Python's path
+sys.path.append('d:/coding_series/online-muesum/py-feat')
+
+# Import from feat module
+from feat.detector import Detector
+
+# Initialize detector
+detector = Detector()
+
+# Print available methods and attributes
+print("\nDetector Methods and Attributes:")
+for attr in dir(detector):
+    if not attr.startswith('_'):
+        print(f"- {attr}")
+
+# Try to get documentation for key methods
+print("\nDetector Method Documentation:")
+methods_to_check = ["detect", "detect_faces", "detect_image"]
+for method in methods_to_check:
+    if hasattr(detector, method):
+        print(f"\n{method}:")
+        print(getattr(detector, method).__doc__)
+    else:
+        print(f"\n{method}: Not available")
+
+print("\nTrying different methods with a sample image...")
+# Create a small test image
 import numpy as np
-import tensorflow as tf
+from PIL import Image
 import cv2
-import matplotlib.pyplot as plt
-import seaborn as sns
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense, Flatten, Dropout, BatchNormalization
-from tensorflow.keras.optimizers import Adam
-from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler
 
-# ✅ Load Dataset
-DATASET_PATH = "../data/"
-CSV_PATH = os.path.join(DATASET_PATH, "AffectNet-C2A2.csv")
-IMAGE_PATH = os.path.join(DATASET_PATH, "images")  # Change if needed
+# Create a simple test image (black square with white center)
+img = np.zeros((100, 100, 3), dtype=np.uint8)
+img[25:75, 25:75] = 255  # White square in the middle
 
-df = pd.read_csv(CSV_PATH)
-print(df.head())
+# Try different methods
+try:
+    if hasattr(detector, "detect"):
+        print("\nTrying detector.detect()...")
+        result = detector.detect(img)
+        print(f"Result type: {type(result)}")
+        print(f"Result attributes: {dir(result)[:10]}...")
+except Exception as e:
+    print(f"Error with detect(): {str(e)}")
 
-# ✅ Handle Missing Values
-df.dropna(inplace=True)
+try:
+    if hasattr(detector, "detect_faces"):
+        print("\nTrying detector.detect_faces()...")
+        result = detector.detect_faces(img)
+        print(f"Result type: {type(result)}")
+        print(f"Result keys: {result.keys()}")
+except Exception as e:
+    print(f"Error with detect_faces(): {str(e)}")
 
-# ✅ Visualize Data Distribution
-plt.figure(figsize=(12, 5))
-sns.histplot(df["valence"], bins=50, kde=True, label="Valence")
-sns.histplot(df["arousal"], bins=50, kde=True, color="red", label="Arousal")
-plt.legend()
-plt.title("Valence & Arousal Distribution")
-plt.show()
-
-# ✅ Load & Preprocess Images
-def load_image(image_name):
-    img_path = os.path.join(IMAGE_PATH, image_name)
-    img = cv2.imread(img_path)
-    if img is not None:
-        img = cv2.resize(img, (224, 224))
-        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB) / 255.0  # Normalize
-    return img
-
-df["image_data"] = df["image"].apply(load_image)
-
-# ✅ Remove Rows with Unreadable Images
-df = df.dropna(subset=["image_data"])
-
-# ✅ Convert to NumPy Arrays
-X = np.stack(df["image_data"].values)  # Images
-y = df[["valence", "arousal"]].values  # Labels
-
-# ✅ Train-Test Split
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-
-# ✅ Build Model
-def build_model():
-    model = Sequential([
-        Flatten(input_shape=(224, 224, 3)),
-        Dense(1024, activation="relu"),
-        BatchNormalization(),
-        Dropout(0.3),
-        Dense(512, activation="relu"),
-        BatchNormalization(),
-        Dropout(0.3),
-        Dense(2, activation="linear")  # Predicts valence & arousal
-    ])
-    model.compile(optimizer=Adam(learning_rate=0.0001), loss="mse", metrics=["mae"])
-    return model
-
-model = build_model()
-
-# ✅ Train Model
-early_stop = EarlyStopping(monitor="val_loss", patience=5, restore_best_weights=True)
-reduce_lr = ReduceLROnPlateau(monitor="val_loss", factor=0.5, patience=3, min_lr=1e-6)
-
-history = model.fit(
-    X_train, y_train,
-    validation_data=(X_test, y_test),
-    epochs=50,
-    batch_size=32,
-    callbacks=[early_stop, reduce_lr]
-)
-
-# ✅ Save Model
-model.save("affectnet_model.keras")
-
-# ✅ Plot Training History
-plt.figure(figsize=(10, 5))
-plt.plot(history.history["mae"], label="Train MAE")
-plt.plot(history.history["val_mae"], label="Val MAE", linestyle="dashed")
-plt.legend()
-plt.title("Training Progress")
-plt.show()
+# For a better test, save an actual face image
+try:
+    face_img = np.ones((224, 224, 3), dtype=np.uint8) * 200
+    cv2.circle(face_img, (112, 100), 50, (255, 200, 200), -1)  # Simple face shape
+    cv2.circle(face_img, (90, 90), 5, (0, 0, 0), -1)  # Left eye
+    cv2.circle(face_img, (134, 90), 5, (0, 0, 0), -1)  # Right eye
+    cv2.ellipse(face_img, (112, 130), (30, 10), 0, 0, 180, (0, 0, 0), 2)  # Mouth
+    
+    cv2.imwrite("test_face.jpg", face_img)
+    print("\nSaved test_face.jpg for testing")
+    
+    # Try with a real face image
+    test_img = cv2.imread("test_face.jpg")
+    test_img_rgb = cv2.cvtColor(test_img, cv2.COLOR_BGR2RGB)
+    
+    # Try methods on this image
+    for method in ["detect", "detect_faces"]:
+        if hasattr(detector, method):
+            try:
+                print(f"\nTrying detector.{method}() with test face...")
+                result = getattr(detector, method)(test_img_rgb)
+                print(f"Result: {result}")
+            except Exception as e:
+                print(f"Error with {method}(): {str(e)}")
+except Exception as e:
+    print(f"Error creating test image: {str(e)}")
